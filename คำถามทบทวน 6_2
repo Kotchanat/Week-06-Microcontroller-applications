@@ -1,0 +1,50 @@
+คำถามทบทวน
+
+Multiple Source Files: เหตุใดต้องแยก source code เป็นหลายไฟล์?
+1. แยกหน้าที่ (Separation of Concerns) ช่วยให้ แต่ละไฟล์มีหน้าที่เฉพาะ เช่น:
+main.c → เริ่มโปรแกรม
+wifi.c → จัดการ Wi-Fi
+sensor.c → อ่านค่าจาก sensor
+ทำให้โค้ดเข้าใจง่าย และแก้ไขเฉพาะส่วนได้
+2. เพิ่มความสามารถในการ Reuse
+3. สนับสนุนการทดสอบ (Testing)
+4. Build เร็วขึ้น
+5. ทำงานเป็นทีมได้ง่าย
+
+
+CMakeLists.txt Management: การเพิ่มไฟล์ source ใหม่ต้องแก้ไขอะไรบ้าง?
+- แก้ไข CMakeLists.txt	เพิ่มชื่อไฟล์ .c หรือ .cpp ใน SRCS
+- ตั้ง include ให้ถูก	ใช้ INCLUDE_DIRS และ #include ที่ตรงกับ path
+- ถ้ามี component	เพิ่ม CMakeLists.txt แยกในแต่ละ component
+- build ใหม่	ใช้ idf.py build เพื่อ compile
+
+Header Files: บทบาทของไฟล์ .h คืออะไร และทำไมต้องมี?
+- Header (.h) คือ “หน้าสัญญา” ที่บอกว่าเรามีอะไรให้คนอื่นใช้ (ฟังก์ชัน, ตัวแปร ฯลฯ)
+- ใช้คู่กับ .c ที่ทำงานจริง
+- สำคัญมากสำหรับโปรเจกต์ใหญ่ เพราะช่วยให้แยกงาน จัดระเบียบ และหลีกเลี่ยง error ได้ดี
+
+Include Directories: เหตุใด CMakeLists.txt ต้องระบุ INCLUDE_DIRS?
+- บอกตำแหน่งไฟล์ header	ให้ compiler รู้ว่าต้องหา header จาก path ไหน
+- สนับสนุน modular code	ถ้าแยก header เป็นหลายโฟลเดอร์ (components), ต้องระบุแต่ละโฟลเดอร์ให้ครบ
+- ช่วยให้หลายไฟล์เชื่อมกันได้	เพื่อให้ main.c ใช้ฟังก์ชันใน sensor.c ได้ผ่าน sensor.h
+- ป้องกัน error	ป้องกัน compiler error จาก #include แล้วหาไม่เจอ
+
+Git Ignore: ไฟล์ .gitignore ช่วยอะไรในการจัดการ ESP32 project?
+- .gitignore คือเครื่องมือช่วยให้ Git ไม่เก็บไฟล์ที่ไม่จำเป็น เช่นไฟล์ build, log, หรือไฟล์ config ส่วนตัว
+- ช่วยให้ โปรเจกต์ E
+
+Task Management: การใช้ FreeRTOS task ในโมดูล LED ช่วยอะไร?
+- แยกการทำงานออกจาก task อื่น	LED มี task เป็นของตัวเอง ไม่รบกวน main loop หรือ task อื่น เช่น Wi-Fi, Sensor
+- ควบคุม timing ได้แม่นยำ	เช่น กระพริบ LED ทุก 500 ms โดยใช้ vTaskDelay() ควบคุมจังหวะได้แม่นกว่า delay ทั่วไป
+- ทำงานแบบ background ต่อเนื่อง	เช่นให้ LED แสดงสถานะตลอดเวลา โดยไม่ต้องรอ loop หลัก
+- เขียนโค้ดแบบ modular (แยกหน้าที่)	ทำให้ LED control แยกจาก logic อื่น เช่น UI, sensor, network → แก้ไขง่าย
+- ใช้ priority และ scheduling ได้	เลือกได้ว่า LED สำคัญมากหรือน้อย เช่น ไฟแจ้งเตือน error อาจมี priority สูง
+
+Code Organization: ข้อดีของการแยกโมดูล sensor, display, led เป็นไฟล์แยกคืออะไร?
+- เพิ่มความเข้าใจและจัดการง่าย	แยกตามหน้าที่ → ดูโค้ดง่าย เช่น ปรับการกระพริบ LED ก็เปิดแค่ led.c ไม่ต้องดูทั้งหมด
+- สามารถนำกลับมาใช้ซ้ำ (Reusable)	เช่น sensor.c อาจใช้ในหลายโปรเจกต์ได้โดยไม่ต้องแก้
+- ทำงานเป็นทีมได้ดีขึ้น	แต่ละคนรับผิดชอบคนละโมดูล → ลดความขัดแย้งใน Git
+- ทดสอบแยกเป็นโมดูลได้ (Modular Testing)	เขียน unit test แยกแต่ละส่วน เช่น ทดสอบ read_sensor() โดยไม่ต้อง run ทั้งโปรแกรม
+- ส่งเสริมหลักการออกแบบที่ดี (Separation of Concerns)	ทำให้โปรเจกต์ยืดหยุ่น รองรับการขยาย เช่น เปลี่ยนจากจอ LCD ไป OLED โดยไม่ยุ่งกับ sensor หรือ led
+- เชื่อมกับระบบ build ง่ายขึ้น	ใช้ CMakeLists.txt เพิ่ม source และ include แยกตามโมดูลอย่างชัดเจน
+- รองรับการเขียนแบบ OOP (แนวคิด object-oriented)	เช่น โค้ดแต่ละโมดูลทำหน้าที่เสมือน class ใน C++
